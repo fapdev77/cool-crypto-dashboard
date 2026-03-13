@@ -10,7 +10,11 @@ export interface TickerData {
   volume24h: string;
   turnover24h: string;
   price24hPcnt: string;
-  usdIndexPrice: string;
+  usdIndexPrice?: string;
+  markPrice?: string;
+  indexPrice?: string;
+  fundingRate?: string;
+  openInterest?: string;
   timestamp: number;
 }
 
@@ -30,8 +34,8 @@ export function useBybitWebSocket(symbols: string[]) {
     // Se não houver símbolos, não conecta
     if (symbols.length === 0) return;
 
-    // URL do WebSocket público Spot V5 da Bybit
-    const wsUrl = 'wss://stream.bybit.com/v5/public/spot';
+    // URL do WebSocket público Linear V5 da Bybit (USDT Perpetual)
+    const wsUrl = 'wss://stream.bybit.com/v5/public/linear';
     
     // Inicializa a conexão
     const ws = new WebSocket(wsUrl);
