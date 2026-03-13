@@ -32,6 +32,18 @@ Um dashboard moderno e responsivo para acompanhamento de criptomoedas em tempo r
    ```
 4. Acesse `http://localhost:3000` no seu navegador.
 
+## 🧪 Como Executar os Testes
+
+Este projeto utiliza **Vitest** e **React Testing Library** para testes automatizados. Para rodar a suíte de testes:
+
+```bash
+npm run test
+```
+Os testes cobrem:
+- Renderização e interações do componente `CryptoCard`.
+- Lógica de persistência e alternância de tema no hook `useTheme`.
+- Estrutura principal e mocks de integração no `App.tsx`.
+
 ## 📂 Estrutura do Projeto
 - `/src/components`: Componentes visuais isolados (`CryptoCard`, `Header`, `CoinMarquee`).
 - `/src/hooks`: Hooks customizados (`useBybitWebSocket` com lógica de fallback e reconexão, `useTheme` para dark mode).
@@ -52,6 +64,7 @@ Caso precise recriar este projeto do zero utilizando uma IA (como o próprio Gem
 > - Use `lucide-react` para ícones.
 > - Use `motion/react` (Framer Motion) para animações de layout (`layout` prop) e transições de entrada/saída (`AnimatePresence`).
 > - O design deve ser moderno, clean, com suporte a Dark Mode (usando a classe `dark` no HTML e persistindo a preferência no `localStorage`).
+> - Configure testes automatizados usando `vitest`, `@testing-library/react` e `jsdom`.
 > 
 > **Requisitos Funcionais:**
 > 1. **WebSocket Resiliente (Hook Customizado):** Crie um hook `useBybitWebSocket` que conecte na API pública da Bybit (`wss://stream.bybit.com/v5/public/linear`). Se a conexão falhar ou for bloqueada, deve ter um fallback automático para a Binance (`wss://fstream.binance.com/ws`). O hook deve normalizar os dados da Binance para o mesmo formato da Bybit. Deve incluir reconexão automática e lidar com a limpeza da conexão no unmount.
