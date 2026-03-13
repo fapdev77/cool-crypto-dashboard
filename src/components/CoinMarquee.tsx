@@ -1,0 +1,66 @@
+import React from 'react';
+import { TickerData } from '../hooks/useBybitWebSocket';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
+interface Asset {
+  symbol: string;
+  name: string;
+  iconUrl?: string;
+}
+
+interface CoinMarqueeProps {
+  assets: Asset[];
+  tickers: Record<string, TickerData>;
+}
+
+export function CoinMarquee({ assets, tickers }: CoinMarqueeProps) {
+  const formatPrice = (price?: string) => {
+    if (!price) return '---';
+    const num = parseFloat(price);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: num < 1 ? 4 : 2,
+      maximumFractionDigits: num < 1 ? 4 : 2,
+    }).format(num);
+  };
+
+  const formatPercent = (percent?: string) => {
+    if (!percent) return '---';
+    const num = parseFloat(percent) * 100;
+    return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`;
+  };
+
+  // Duplicamos a lista para criar o efeito infinito
+  const marqueeItems = [...assets, ...assets, ...assets, ...assets];
+
+  return (
+    <div className="w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 overflow-hidden py-2 flex items-center relative">
+      <div className="flex animate-marquee whitespace-nowrap">
+        {marqueeItems.map((asset, index) => {
+          const data = tickers[asset.symbol];
+          const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
+
+          return (
+            <div key={`${asset.symbol}-${index}`} className="flex items-center gap-3 mx-6">
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                {asset.symbol.replace('USDT', '')}
+              </span>
+              <span className="font-mono text-zinc-900 dark:text-zinc-100">
+                {formatPrice(data?.lastPrice)}
+              </span>
+              <span
+                className={`flex items-center text-sm font-medium ${
+                  isPositive ? 'text-emerald-500' : 'text-rose-500'
+                }`}
+              >
+                {isPositive ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
+                {formatPercent(data?.price24hPcnt)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

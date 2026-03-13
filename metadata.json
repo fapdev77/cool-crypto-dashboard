@@ -1,0 +1,5 @@
+{
+  "name": "cool-crypto-dash-v3",
+  "description": "A modern crypto asset dashboard with real-time prices and volume from Bybit.",
+  "requestFramePermissions": []
+}
