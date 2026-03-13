@@ -49,6 +49,7 @@ export function Header({ theme, toggleTheme, isConnected }: HeaderProps) {
 
           {/* Botão de Tema */}
           <motion.button
+            type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={toggleTheme}

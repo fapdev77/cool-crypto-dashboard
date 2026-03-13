@@ -32,12 +32,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
 };
 
 interface CryptoCardProps {
-  key?: React.Key;
   symbol: string;
   data?: TickerData;
   name: string;
   iconUrl?: string;
-  index: number;
   isFavorite?: boolean;
   onToggleFavorite?: (symbol: string) => void;
 }
@@ -46,7 +44,7 @@ interface CryptoCardProps {
  * Componente que exibe os dados de um ativo cripto específico.
  * Anima quando o preço muda e exibe informações detalhadas.
  */
-export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = false, onToggleFavorite }: CryptoCardProps) {
+export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, onToggleFavorite }: CryptoCardProps) {
   const prevPriceRef = useRef<string | null>(null);
   const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'none'>('none');
 
@@ -61,6 +59,8 @@ export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = fa
       } else if (current < prev) {
         setPriceDirection('down');
       }
+      
+      prevPriceRef.current = data.lastPrice;
       
       // Reseta a direção após um curto período para remover a animação de destaque
       const timeout = setTimeout(() => setPriceDirection('none'), 1000);
@@ -109,11 +109,8 @@ export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = fa
   const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
+    <div
+      className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-shadow h-full"
     >
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
@@ -130,6 +127,7 @@ export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = fa
               <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50">{name}</h3>
               {onToggleFavorite && (
                 <button 
+                  type="button"
                   onClick={() => onToggleFavorite(symbol)}
                   className="text-zinc-400 hover:text-amber-400 dark:hover:text-amber-400 transition-colors focus:outline-none"
                   aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
@@ -158,15 +156,17 @@ export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = fa
       {/* Preço Atual */}
       <div className="mb-6">
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">Preço Atual</p>
-        <motion.div
-          animate={{
-            color: priceDirection === 'up' ? '#10b981' : priceDirection === 'down' ? '#f43f5e' : '',
-          }}
-          transition={{ duration: 0.3 }}
-          className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 font-mono tracking-tight"
+        <div
+          className={`text-3xl font-bold font-mono tracking-tight transition-colors duration-300 ${
+            priceDirection === 'up' 
+              ? 'text-emerald-500' 
+              : priceDirection === 'down' 
+                ? 'text-rose-500' 
+                : 'text-zinc-900 dark:text-zinc-50'
+          }`}
         >
           {formatPrice(data?.lastPrice)}
-        </motion.div>
+        </div>
       </div>
 
       {/* Estatísticas Adicionais - Futuros */}
@@ -235,6 +235,6 @@ export function CryptoCard({ symbol, data, name, iconUrl, index, isFavorite = fa
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

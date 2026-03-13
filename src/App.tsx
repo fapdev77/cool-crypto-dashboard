@@ -33,8 +33,13 @@ export default function App() {
   
   // Estado para favoritos
   const [favorites, setFavorites] = useState<string[]>(() => {
-    const saved = localStorage.getItem('crypto_favorites');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('crypto_favorites');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to parse favorites from localStorage', e);
+      return [];
+    }
   });
 
   // Estado para filtros
@@ -55,7 +60,7 @@ export default function App() {
   };
 
   // Extrai apenas os símbolos para o hook do WebSocket
-  const symbols = CRYPTO_ASSETS.map(asset => asset.symbol);
+  const symbols = useMemo(() => CRYPTO_ASSETS.map(asset => asset.symbol), []);
   const { tickers, isConnected } = useBybitWebSocket(symbols);
 
   // Filtra os ativos com base na busca e modo
@@ -120,6 +125,7 @@ export default function App() {
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 focus:outline-none transition-colors"
                 aria-label="Limpar busca"
@@ -131,6 +137,7 @@ export default function App() {
 
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto">
             <button
+              type="button"
               onClick={() => {
                 setFilterMode('all');
                 setSearchQuery('');
@@ -144,6 +151,7 @@ export default function App() {
               Todas
             </button>
             <button
+              type="button"
               onClick={() => {
                 setFilterMode('favorites');
                 setSearchQuery('');
@@ -168,17 +176,17 @@ export default function App() {
                 <motion.div
                   key={asset.symbol}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="h-full"
                 >
                   <CryptoCard
                     symbol={asset.symbol}
                     name={asset.name}
                     iconUrl={asset.iconUrl}
                     data={tickers[asset.symbol]}
-                    index={index}
                     isFavorite={favorites.includes(asset.symbol)}
                     onToggleFavorite={toggleFavorite}
                   />
