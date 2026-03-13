@@ -31,12 +31,18 @@ export function CoinMarquee({ assets, tickers }: CoinMarqueeProps) {
     return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`;
   };
 
+  if (assets.length === 0) {
+    return null;
+  }
+
   // Duplicamos a lista para criar o efeito infinito
-  const marqueeItems = [...assets, ...assets, ...assets, ...assets];
+  // Se houver poucos itens, duplicamos mais vezes para preencher a tela
+  const multiplier = Math.max(4, Math.ceil(20 / assets.length));
+  const marqueeItems = Array(multiplier).fill(assets).flat();
 
   return (
     <div className="w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 overflow-hidden py-2 flex items-center relative">
-      <div className="flex animate-marquee whitespace-nowrap">
+      <div className="flex animate-marquee hover:[animation-play-state:paused] whitespace-nowrap">
         {marqueeItems.map((asset, index) => {
           const data = tickers[asset.symbol];
           const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
