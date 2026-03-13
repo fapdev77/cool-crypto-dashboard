@@ -8,9 +8,10 @@ import { useBybitWebSocket } from './hooks/useBybitWebSocket';
 import { Header } from './components/Header';
 import { CryptoCard } from './components/CryptoCard';
 import { CoinMarquee } from './components/CoinMarquee';
+import { SearchDropdown } from './components/SearchDropdown';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Star, X } from 'lucide-react';
+import { Star, LayoutGrid, List } from 'lucide-react';
 
 // Lista expandida de ativos para acompanhar
 const CRYPTO_ASSETS = [
@@ -45,6 +46,8 @@ export default function App() {
   // Estado para filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'favorites'>('all');
+  const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
+  const [isCompactMode, setIsCompactMode] = useState(false);
 
   // Salva favoritos no localStorage quando mudar
   useEffect(() => {
@@ -59,6 +62,18 @@ export default function App() {
     );
   };
 
+  const toggleSelect = (symbol: string) => {
+    setSelectedSymbols(prev => 
+      prev.includes(symbol)
+        ? prev.filter(s => s !== symbol)
+        : [...prev, symbol]
+    );
+  };
+
+  const clearSelection = () => {
+    setSelectedSymbols([]);
+  };
+
   // Extrai apenas os símbolos para o hook do WebSocket
   const symbols = useMemo(() => CRYPTO_ASSETS.map(asset => asset.symbol), []);
   const { tickers, isConnected } = useBybitWebSocket(symbols);
@@ -66,15 +81,18 @@ export default function App() {
   // Filtra os ativos com base na busca e modo
   const filteredAssets = useMemo(() => {
     return CRYPTO_ASSETS.filter(asset => {
-      const matchesSearch = 
-        asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        asset.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+      // Se houver moedas selecionadas no dropdown, mostramos apenas elas (ignorando a busca em texto para os cards)
+      // Se não houver seleção, usamos a busca em texto para filtrar os cards
+      const matchesSearchOrSelection = selectedSymbols.length > 0 
+        ? selectedSymbols.includes(asset.symbol)
+        : (asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+           asset.symbol.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesMode = filterMode === 'all' || favorites.includes(asset.symbol);
       
-      return matchesSearch && matchesMode;
+      return matchesSearchOrSelection && matchesMode;
     });
-  }, [searchQuery, filterMode, favorites]);
+  }, [searchQuery, filterMode, favorites, selectedSymbols]);
 
   // Ativos para o marquee (apenas favoritos se o filtro estiver ativo)
   const marqueeAssets = useMemo(() => {
@@ -112,27 +130,42 @@ export default function App() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="flex flex-col sm:flex-row gap-4 mb-8 items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800"
         >
-          <div className="relative w-full sm:max-w-xs">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-zinc-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar moeda..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 border border-zinc-200 dark:border-zinc-700 rounded-xl leading-5 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 focus:outline-none transition-colors"
-                aria-label="Limpar busca"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+          <SearchDropdown 
+            assets={CRYPTO_ASSETS}
+            selectedSymbols={selectedSymbols}
+            onToggleSelect={toggleSelect}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onClearSelection={clearSelection}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsCompactMode(false)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                !isCompactMode 
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' 
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
+              title="Cards Completos"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCompactMode(true)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                isCompactMode 
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' 
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
+              title="Cards Compactos"
+            >
+              <List size={16} />
+            </button>
           </div>
 
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto">
@@ -170,7 +203,7 @@ export default function App() {
 
         {/* Grid de Cards */}
         {filteredAssets.length > 0 ? (
-          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div layout className={`grid gap-6 ${isCompactMode ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
             <AnimatePresence mode="popLayout">
               {filteredAssets.map((asset, index) => (
                 <motion.div
@@ -189,6 +222,7 @@ export default function App() {
                     data={tickers[asset.symbol]}
                     isFavorite={favorites.includes(asset.symbol)}
                     onToggleFavorite={toggleFavorite}
+                    isCompact={isCompactMode}
                   />
                 </motion.div>
               ))}

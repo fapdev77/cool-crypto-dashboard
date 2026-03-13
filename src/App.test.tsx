@@ -49,7 +49,7 @@ describe('App Component', () => {
     expect(screen.getByText('Mercado em Tempo Real')).toBeInTheDocument();
     
     // Check if search input is rendered
-    expect(screen.getByPlaceholderText('Buscar moeda...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Buscar e selecionar moedas...')).toBeInTheDocument();
     
     // Check if Bitcoin card is rendered from the mock data
     expect(screen.getByText('Bitcoin')).toBeInTheDocument();

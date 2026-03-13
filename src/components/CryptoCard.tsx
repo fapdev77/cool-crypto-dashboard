@@ -38,13 +38,14 @@ interface CryptoCardProps {
   iconUrl?: string;
   isFavorite?: boolean;
   onToggleFavorite?: (symbol: string) => void;
+  isCompact?: boolean;
 }
 
 /**
  * Componente que exibe os dados de um ativo cripto específico.
  * Anima quando o preço muda e exibe informações detalhadas.
  */
-export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, onToggleFavorite }: CryptoCardProps) {
+export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, onToggleFavorite, isCompact = false }: CryptoCardProps) {
   const prevPriceRef = useRef<string | null>(null);
   const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'none'>('none');
 
@@ -109,10 +110,14 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
   const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
 
   return (
-    <div
-      className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-shadow h-full"
+    <motion.div
+      layout
+      animate={{ padding: isCompact ? '1rem' : '1.5rem' }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      style={{ borderRadius: '1rem' }}
+      className="bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md h-full flex flex-col overflow-hidden"
     >
-      <div className="flex justify-between items-start mb-4">
+      <motion.div layout="position" className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           {/* Ícone da Moeda */}
           <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
@@ -151,13 +156,28 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
           {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
           {formatPercent(data?.price24hPcnt)}
         </div>
-      </div>
+      </motion.div>
 
       {/* Preço Atual */}
-      <div className="mb-6">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">Preço Atual</p>
-        <div
-          className={`text-3xl font-bold font-mono tracking-tight transition-colors duration-300 ${
+      <motion.div layout="position" className={isCompact ? "mb-2" : "mb-6"}>
+        <AnimatePresence initial={false}>
+          {!isCompact && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">Preço Atual</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <motion.div
+          layout
+          className={`font-bold font-mono tracking-tight transition-colors duration-300 ${
+            isCompact ? 'text-2xl' : 'text-3xl'
+          } ${
             priceDirection === 'up' 
               ? 'text-emerald-500' 
               : priceDirection === 'down' 
@@ -166,75 +186,87 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
           }`}
         >
           {formatPrice(data?.lastPrice)}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Estatísticas Adicionais - Futuros */}
-      <div className="grid grid-cols-2 gap-y-4 gap-x-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
-        <div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-            <Tooltip text="Preço de referência usado para calcular liquidações e PnL não realizado. Evita manipulações de mercado.">
-              <Target size={12} /> Mark Price
-            </Tooltip>
-          </div>
-          <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
-            {formatPrice(data?.markPrice)}
-          </p>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-            <Tooltip text="Média ponderada do preço do ativo em várias exchanges principais (Spot).">
-              <Layers size={12} /> Index Price
-            </Tooltip>
-          </div>
-          <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
-            {formatPrice(data?.indexPrice)}
-          </p>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-            <Tooltip text="Taxa paga entre comprados (Long) e vendidos (Short) para manter o preço do contrato perpétuo próximo ao mercado Spot.">
-              <Percent size={12} /> Funding Rate
-            </Tooltip>
-          </div>
-          <p className={`font-medium font-mono text-sm ${data?.fundingRate && parseFloat(data.fundingRate) > 0 ? 'text-emerald-600 dark:text-emerald-400' : data?.fundingRate && parseFloat(data.fundingRate) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-zinc-300'}`}>
-            {formatFundingRate(data?.fundingRate)}
-          </p>
-        </div>
-        <div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-            <Tooltip text="Número total de contratos derivativos em aberto que ainda não foram liquidados.">
-              <BarChart3 size={12} /> Open Interest
-            </Tooltip>
-          </div>
-          <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
-            {formatVolume(data?.openInterest)}
-          </p>
-        </div>
-        <div className="col-span-2 pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800/50 flex justify-between">
-          <div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-              <Tooltip text="Volume total negociado nas últimas 24 horas, medido em USDT.">
-                <Activity size={12} /> Vol 24h (USDT)
-              </Tooltip>
+      <AnimatePresence initial={false}>
+        {!isCompact && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-y-4 gap-x-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+              <div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                  <Tooltip text="Preço de referência usado para calcular liquidações e PnL não realizado. Evita manipulações de mercado.">
+                    <Target size={12} /> Mark Price
+                  </Tooltip>
+                </div>
+                <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
+                  {formatPrice(data?.markPrice)}
+                </p>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                  <Tooltip text="Média ponderada do preço do ativo em várias exchanges principais (Spot).">
+                    <Layers size={12} /> Index Price
+                  </Tooltip>
+                </div>
+                <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
+                  {formatPrice(data?.indexPrice)}
+                </p>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                  <Tooltip text="Taxa paga entre comprados (Long) e vendidos (Short) para manter o preço do contrato perpétuo próximo ao mercado Spot.">
+                    <Percent size={12} /> Funding Rate
+                  </Tooltip>
+                </div>
+                <p className={`font-medium font-mono text-sm ${data?.fundingRate && parseFloat(data.fundingRate) > 0 ? 'text-emerald-600 dark:text-emerald-400' : data?.fundingRate && parseFloat(data.fundingRate) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-zinc-300'}`}>
+                  {formatFundingRate(data?.fundingRate)}
+                </p>
+              </div>
+              <div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                  <Tooltip text="Número total de contratos derivativos em aberto que ainda não foram liquidados.">
+                    <BarChart3 size={12} /> Open Interest
+                  </Tooltip>
+                </div>
+                <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
+                  {formatVolume(data?.openInterest)}
+                </p>
+              </div>
+              <div className="col-span-2 pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800/50 flex justify-between">
+                <div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
+                    <Tooltip text="Volume total negociado nas últimas 24 horas, medido em USDT.">
+                      <Activity size={12} /> Vol 24h (USDT)
+                    </Tooltip>
+                  </div>
+                  <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
+                    {formatVolume(data?.turnover24h)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1 flex justify-end">
+                    <Tooltip text="O maior e o menor preço negociado nas últimas 24 horas.">
+                      Máx/Mín 24h
+                    </Tooltip>
+                  </div>
+                  <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-xs flex flex-col gap-0.5">
+                    <span className="text-emerald-600 dark:text-emerald-400">{formatPrice(data?.highPrice24h)}</span>
+                    <span className="text-rose-600 dark:text-rose-400">{formatPrice(data?.lowPrice24h)}</span>
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-sm">
-              {formatVolume(data?.turnover24h)}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1 flex justify-end">
-              <Tooltip text="O maior e o menor preço negociado nas últimas 24 horas.">
-                Máx/Mín 24h
-              </Tooltip>
-            </div>
-            <p className="font-medium text-zinc-900 dark:text-zinc-300 font-mono text-xs flex flex-col gap-0.5">
-              <span className="text-emerald-600 dark:text-emerald-400">{formatPrice(data?.highPrice24h)}</span>
-              <span className="text-rose-600 dark:text-rose-400">{formatPrice(data?.lowPrice24h)}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

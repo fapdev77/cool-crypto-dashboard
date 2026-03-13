@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TickerData } from '../hooks/useBybitWebSocket';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { animate } from 'motion/react';
 
 interface Asset {
   symbol: string;
@@ -14,6 +15,30 @@ interface CoinMarqueeProps {
 }
 
 export function CoinMarquee({ assets, tickers }: CoinMarqueeProps) {
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (!marqueeRef.current || typeof marqueeRef.current.getAnimations !== 'function') return;
+
+    // Obtém as animações CSS aplicadas ao elemento
+    const animations = marqueeRef.current.getAnimations();
+    const marqueeAnimation = animations.find(a => (a as any).animationName === 'marquee');
+
+    if (!marqueeAnimation) return;
+
+    // Anima suavemente a velocidade de reprodução (playbackRate)
+    const controls = animate(marqueeAnimation.playbackRate, isHovered ? 0 : 1, {
+      duration: 0.5,
+      ease: "easeInOut",
+      onUpdate: (latest) => {
+        marqueeAnimation.playbackRate = latest;
+      }
+    });
+
+    return () => controls.stop();
+  }, [isHovered]);
+
   const formatPrice = (price?: string) => {
     if (!price) return '---';
     const num = parseFloat(price);
@@ -41,8 +66,15 @@ export function CoinMarquee({ assets, tickers }: CoinMarqueeProps) {
   const marqueeItems = Array(multiplier).fill(assets).flat();
 
   return (
-    <div className="w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 overflow-hidden py-2 flex items-center relative">
-      <div className="flex animate-marquee hover:[animation-play-state:paused] whitespace-nowrap">
+    <div 
+      className="w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 overflow-hidden py-2 flex items-center relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div 
+        ref={marqueeRef}
+        className="flex animate-marquee whitespace-nowrap"
+      >
         {marqueeItems.map((asset, index) => {
           const data = tickers[asset.symbol];
           const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
