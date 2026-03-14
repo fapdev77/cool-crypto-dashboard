@@ -2,32 +2,52 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TrendingUp, TrendingDown, DollarSign, Activity, Target, Layers, Percent, BarChart3, Star } from 'lucide-react';
 import { TickerData } from '../hooks/useBybitWebSocket';
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (isVisible && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX + rect.width / 2,
+      });
+    }
+  }, [isVisible]);
   
   return (
-    <div 
-      className="relative inline-flex items-center gap-1 cursor-help"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-    >
-      {children}
-      <AnimatePresence>
-        {isVisible && (
-          <motion.div 
-            initial={{ opacity: 0, y: 5, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 2, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-zinc-900/95 backdrop-blur-md dark:bg-zinc-100/95 text-zinc-100 dark:text-zinc-900 text-xs rounded-xl shadow-xl z-50 text-center pointer-events-none leading-relaxed border border-zinc-800 dark:border-zinc-200"
-          >
-            {text}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-zinc-900/95 dark:border-t-zinc-100/95"></div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <>
+      <div 
+        ref={triggerRef}
+        className="relative inline-flex items-center gap-1 cursor-help"
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isVisible && (
+            <motion.div 
+              initial={{ opacity: 0, y: 5, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 2, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              style={{ top: coords.top - 8, left: coords.left }}
+              className="absolute -translate-x-1/2 -translate-y-full w-56 p-2.5 bg-zinc-900/95 backdrop-blur-md dark:bg-zinc-100/95 text-zinc-100 dark:text-zinc-900 text-xs rounded-xl shadow-xl z-[100] text-center pointer-events-none leading-relaxed border border-zinc-800 dark:border-zinc-200"
+            >
+              {text}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-zinc-900/95 dark:border-t-zinc-100/95"></div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 };
 
@@ -110,14 +130,14 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
   const isPositive = data?.price24hPcnt ? parseFloat(data.price24hPcnt) >= 0 : true;
 
   return (
-    <motion.div
-      layout
-      animate={{ padding: viewMode === 'list' ? '0.75rem 1rem' : viewMode === 'compact' ? '1rem' : '1.5rem' }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-      style={{ borderRadius: '1rem' }}
+    <div
+      style={{ 
+        borderRadius: '1rem',
+        padding: viewMode === 'list' ? '0.75rem 1rem' : viewMode === 'compact' ? '1rem' : '1.5rem'
+      }}
       className={`bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md overflow-hidden flex ${viewMode === 'list' ? 'flex-row items-center justify-between gap-4' : 'flex-col h-full'}`}
     >
-      <motion.div layout="position" className={`flex ${viewMode === 'list' ? 'items-center gap-3 min-w-[150px]' : 'justify-between items-start mb-4'}`}>
+      <div className={`flex ${viewMode === 'list' ? 'items-center gap-3 min-w-[150px]' : 'justify-between items-start mb-4'}`}>
         <div className="flex items-center gap-3">
           {/* Ícone da Moeda */}
           <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
@@ -158,25 +178,16 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
             {formatPercent(data?.price24hPcnt)}
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Preço Atual */}
-      <motion.div layout="position" className={`${viewMode === 'list' ? 'flex items-center justify-end gap-3 sm:gap-6 flex-1' : viewMode === 'compact' ? 'mb-2' : 'mb-6'}`}>
-        <AnimatePresence initial={false}>
-          {viewMode === 'full' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">Preço Atual</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <motion.div
-          layout
+      <div className={`${viewMode === 'list' ? 'flex items-center justify-end gap-3 sm:gap-6 flex-1' : viewMode === 'compact' ? 'mb-2' : 'mb-6'}`}>
+        {viewMode === 'full' && (
+          <div className="overflow-hidden">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">Preço Atual</p>
+          </div>
+        )}
+        <div
           className={`font-bold font-mono tracking-tight transition-colors duration-300 whitespace-nowrap ${
             viewMode === 'list' ? 'text-lg sm:text-xl' : viewMode === 'compact' ? 'text-2xl' : 'text-3xl'
           } ${
@@ -188,7 +199,7 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
           }`}
         >
           {formatPrice(data?.lastPrice)}
-        </motion.div>
+        </div>
         
         {/* Variação 24h (List) */}
         {viewMode === 'list' && (
@@ -203,19 +214,12 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
             {formatPercent(data?.price24hPcnt)}
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Estatísticas Adicionais - Futuros */}
-      <AnimatePresence initial={false}>
-        {viewMode === 'full' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="grid grid-cols-2 gap-y-4 gap-x-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+      {viewMode === 'full' && (
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-2 gap-y-4 gap-x-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
               <div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">
                   <Tooltip text="Preço de referência usado para calcular liquidações e PnL não realizado. Evita manipulações de mercado.">
@@ -280,9 +284,8 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
                 </div>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+        </div>
+      )}
+    </div>
   );
 }

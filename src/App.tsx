@@ -215,37 +215,30 @@ export default function App() {
 
         {/* Grid de Cards */}
         {filteredAssets.length > 0 ? (
-          <motion.div layout className={`grid gap-4 sm:gap-6 ${
+          <div className={`grid gap-4 sm:gap-6 ${
             viewMode === 'list' 
               ? 'grid-cols-1' 
               : viewMode === 'compact'
                 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                 : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
           }`}>
-            <AnimatePresence mode="popLayout">
-              {filteredAssets.map((asset, index) => (
-                <motion.div
-                  key={asset.symbol}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className={viewMode === 'list' ? 'h-auto' : 'h-full'}
-                >
-                  <CryptoCard
-                    symbol={asset.symbol}
-                    name={asset.name}
-                    iconUrl={asset.iconUrl}
-                    data={tickers[asset.symbol]}
-                    isFavorite={favorites.includes(asset.symbol)}
-                    onToggleFavorite={toggleFavorite}
-                    viewMode={viewMode}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+            {filteredAssets.map((asset) => (
+              <div
+                key={asset.symbol}
+                className={viewMode === 'list' ? 'h-auto' : 'h-full'}
+              >
+                <CryptoCard
+                  symbol={asset.symbol}
+                  name={asset.name}
+                  iconUrl={asset.iconUrl}
+                  data={tickers[asset.symbol]}
+                  isFavorite={favorites.includes(asset.symbol)}
+                  onToggleFavorite={toggleFavorite}
+                  viewMode={viewMode}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="text-center py-20">
             <p className="text-zinc-500 dark:text-zinc-400 text-lg">Nenhuma moeda encontrada com esses filtros.</p>
