@@ -6,21 +6,30 @@ export interface CryptoAsset {
   iconUrl?: string;
 }
 
-// Mapa de ícones conhecidos para manter a identidade visual das principais moedas
-const KNOWN_ICONS: Record<string, string> = {
-  'BTCUSDT': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
-  'ETHUSDT': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-  'SOLUSDT': 'https://cryptologos.cc/logos/solana-sol-logo.png',
-  'XRPUSDT': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
-  'DOGEUSDT': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
-  'ADAUSDT': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
-  'AVAXUSDT': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-  'LINKUSDT': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
-  'DOTUSDT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
-  'POLUSDT': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
-  'LTCUSDT': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
-  'UNIUSDT': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
-};
+import cryptoLogos from '../../cryptologos.json';
+
+// Cria um mapa de dados das criptomoedas para busca rápida (O(1))
+const cryptoDataMap = new Map<string, any>();
+
+cryptoLogos.forEach((item: any) => {
+  if (!item.ticker) return;
+  const ticker = item.ticker.toUpperCase();
+  
+  if (!cryptoDataMap.has(ticker)) {
+    cryptoDataMap.set(ticker, item);
+  } else {
+    // Se já existe, verificamos se o novo item é um "melhor" match.
+    // Um "melhor" match é aquele cujo logo_url termina com "-logo.png"
+    const existingItem = cryptoDataMap.get(ticker);
+    const isNewBetter = item.logo_url && item.logo_url.endsWith('-logo.png');
+    const isExistingBetter = existingItem.logo_url && existingItem.logo_url.endsWith('-logo.png');
+    
+    // Se o novo tem -logo.png e o antigo não, substitui
+    if (isNewBetter && !isExistingBetter) {
+      cryptoDataMap.set(ticker, item);
+    }
+  }
+});
 
 export function useBybitInstruments() {
   const [assets, setAssets] = useState<CryptoAsset[]>([]);
@@ -46,11 +55,16 @@ export function useBybitInstruments() {
 
           const usdtPerps = data.result.list
             .filter((item: any) => item.quoteCoin === 'USDT' && item.status === 'Trading')
-            .map((item: any) => ({
-              symbol: item.symbol,
-              name: item.baseCoin, // ex: "BTC"
-              iconUrl: KNOWN_ICONS[item.symbol], // Usa ícone conhecido se existir
-            }))
+            .map((item: any) => {
+              const baseCoin = item.baseCoin;
+              const cryptoData = cryptoDataMap.get(baseCoin.toUpperCase());
+              
+              return {
+                symbol: item.symbol,
+                name: cryptoData ? cryptoData.tickerName : baseCoin, // Usa o nome completo se disponível, senão o ticker
+                iconUrl: cryptoData ? cryptoData.logo_url : undefined, // Usa a logo do JSON se existir
+              };
+            })
             .sort((a: CryptoAsset, b: CryptoAsset) => {
               // Ordena por volume de 24h (maior para menor)
               const volA = volumeMap[a.symbol] || 0;
