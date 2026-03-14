@@ -3,12 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Usa a CSS custom property --marquee-duration definida dinamicamente pelo componente.
-     O fallback de 30s é apenas segurança — o componente sempre sobrescreve via style.setProperty. */
-  --animate-marquee: marquee var(--marquee-duration, 30s) linear infinite;
-
+  --animate-marquee: marquee 120s linear infinite;
+  
   @keyframes marquee {
-    0%   { transform: translateX(0); }
+    0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
 }

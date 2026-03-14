@@ -47,7 +47,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'favorites'>('all');
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
-  const [isCompactMode, setIsCompactMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'full' | 'compact' | 'list'>('full');
 
   // Salva favoritos no localStorage quando mudar
   useEffect(() => {
@@ -144,9 +144,9 @@ export default function App() {
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => setIsCompactMode(false)}
+              onClick={() => setViewMode('full')}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                !isCompactMode 
+                viewMode === 'full' 
                   ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' 
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
               }`}
@@ -156,13 +156,25 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setIsCompactMode(true)}
+              onClick={() => setViewMode('compact')}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                isCompactMode 
+                viewMode === 'compact' 
                   ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' 
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
               }`}
               title="Cards Compactos"
+            >
+              <LayoutGrid size={16} className="scale-75" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                viewMode === 'list' 
+                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' 
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
+              title="Lista"
             >
               <List size={16} />
             </button>
@@ -203,7 +215,13 @@ export default function App() {
 
         {/* Grid de Cards */}
         {filteredAssets.length > 0 ? (
-          <motion.div layout className={`grid gap-6 ${isCompactMode ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+          <motion.div layout className={`grid gap-4 sm:gap-6 ${
+            viewMode === 'list' 
+              ? 'grid-cols-1' 
+              : viewMode === 'compact'
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          }`}>
             <AnimatePresence mode="popLayout">
               {filteredAssets.map((asset, index) => (
                 <motion.div
@@ -213,7 +231,7 @@ export default function App() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: -20 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="h-full"
+                  className={viewMode === 'list' ? 'h-auto' : 'h-full'}
                 >
                   <CryptoCard
                     symbol={asset.symbol}
@@ -222,7 +240,7 @@ export default function App() {
                     data={tickers[asset.symbol]}
                     isFavorite={favorites.includes(asset.symbol)}
                     onToggleFavorite={toggleFavorite}
-                    isCompact={isCompactMode}
+                    viewMode={viewMode}
                   />
                 </motion.div>
               ))}

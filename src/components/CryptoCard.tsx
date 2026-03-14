@@ -38,14 +38,14 @@ interface CryptoCardProps {
   iconUrl?: string;
   isFavorite?: boolean;
   onToggleFavorite?: (symbol: string) => void;
-  isCompact?: boolean;
+  viewMode?: 'full' | 'compact' | 'list';
 }
 
 /**
  * Componente que exibe os dados de um ativo cripto específico.
  * Anima quando o preço muda e exibe informações detalhadas.
  */
-export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, onToggleFavorite, isCompact = false }: CryptoCardProps) {
+export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, onToggleFavorite, viewMode = 'full' }: CryptoCardProps) {
   const prevPriceRef = useRef<string | null>(null);
   const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'none'>('none');
 
@@ -112,24 +112,24 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
   return (
     <motion.div
       layout
-      animate={{ padding: isCompact ? '1rem' : '1.5rem' }}
+      animate={{ padding: viewMode === 'list' ? '0.75rem 1rem' : viewMode === 'compact' ? '1rem' : '1.5rem' }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
       style={{ borderRadius: '1rem' }}
-      className="bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md h-full flex flex-col overflow-hidden"
+      className={`bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md overflow-hidden flex ${viewMode === 'list' ? 'flex-row items-center justify-between gap-4' : 'flex-col h-full'}`}
     >
-      <motion.div layout="position" className="flex justify-between items-start mb-4">
+      <motion.div layout="position" className={`flex ${viewMode === 'list' ? 'items-center gap-3 min-w-[150px]' : 'justify-between items-start mb-4'}`}>
         <div className="flex items-center gap-3">
           {/* Ícone da Moeda */}
-          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
             {iconUrl ? (
               <img src={iconUrl} alt={name} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
             ) : (
               <DollarSign className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
             )}
           </div>
-          <div>
+          <div className={viewMode === 'list' ? 'flex flex-col sm:flex-row sm:items-center sm:gap-2' : ''}>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50">{name}</h3>
+              <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-zinc-50 whitespace-nowrap">{name}</h3>
               {onToggleFavorite && (
                 <button 
                   type="button"
@@ -141,27 +141,29 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
                 </button>
               )}
             </div>
-            <span className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{symbol.replace('USDT', '')} Perp</span>
+            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium whitespace-nowrap">{symbol.replace('USDT', '')} Perp</span>
           </div>
         </div>
 
-        {/* Variação 24h */}
-        <div
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold ${
-            isPositive
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-              : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
-          }`}
-        >
-          {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-          {formatPercent(data?.price24hPcnt)}
-        </div>
+        {/* Variação 24h (Compact/Full) */}
+        {viewMode !== 'list' && (
+          <div
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold ${
+              isPositive
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
+            }`}
+          >
+            {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+            {formatPercent(data?.price24hPcnt)}
+          </div>
+        )}
       </motion.div>
 
       {/* Preço Atual */}
-      <motion.div layout="position" className={isCompact ? "mb-2" : "mb-6"}>
+      <motion.div layout="position" className={`${viewMode === 'list' ? 'flex items-center justify-end gap-3 sm:gap-6 flex-1' : viewMode === 'compact' ? 'mb-2' : 'mb-6'}`}>
         <AnimatePresence initial={false}>
-          {!isCompact && (
+          {viewMode === 'full' && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -175,8 +177,8 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
         </AnimatePresence>
         <motion.div
           layout
-          className={`font-bold font-mono tracking-tight transition-colors duration-300 ${
-            isCompact ? 'text-2xl' : 'text-3xl'
+          className={`font-bold font-mono tracking-tight transition-colors duration-300 whitespace-nowrap ${
+            viewMode === 'list' ? 'text-lg sm:text-xl' : viewMode === 'compact' ? 'text-2xl' : 'text-3xl'
           } ${
             priceDirection === 'up' 
               ? 'text-emerald-500' 
@@ -187,11 +189,25 @@ export function CryptoCard({ symbol, data, name, iconUrl, isFavorite = false, on
         >
           {formatPrice(data?.lastPrice)}
         </motion.div>
+        
+        {/* Variação 24h (List) */}
+        {viewMode === 'list' && (
+          <div
+            className={`flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold w-20 sm:w-24 justify-center shrink-0 ${
+              isPositive
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
+            }`}
+          >
+            {isPositive ? <TrendingUp size={12} className="sm:w-3.5 sm:h-3.5" /> : <TrendingDown size={12} className="sm:w-3.5 sm:h-3.5" />}
+            {formatPercent(data?.price24hPcnt)}
+          </div>
+        )}
       </motion.div>
 
       {/* Estatísticas Adicionais - Futuros */}
       <AnimatePresence initial={false}>
-        {!isCompact && (
+        {viewMode === 'full' && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
