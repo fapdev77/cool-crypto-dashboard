@@ -116,8 +116,12 @@ export function SearchDropdown({
                         <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
                           {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                         </div>
-                        <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
-                          <img src={asset.iconUrl} alt={asset.name} className="w-4 h-4 object-contain" referrerPolicy="no-referrer" />
+                        <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                          {asset.iconUrl ? (
+                            <img src={asset.iconUrl} alt={asset.name} className="w-4 h-4 object-contain" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-zinc-500">{asset.symbol.substring(0, 1)}</span>
+                          )}
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{asset.name}</span>

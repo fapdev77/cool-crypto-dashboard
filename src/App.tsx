@@ -5,32 +5,18 @@
 
 import { useTheme } from './hooks/useTheme';
 import { useBybitWebSocket } from './hooks/useBybitWebSocket';
+import { useBybitInstruments } from './hooks/useBybitInstruments';
 import { Header } from './components/Header';
 import { CryptoCard } from './components/CryptoCard';
 import { CoinMarquee } from './components/CoinMarquee';
 import { SearchDropdown } from './components/SearchDropdown';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect, useMemo } from 'react';
-import { Star, LayoutGrid, List } from 'lucide-react';
-
-// Lista expandida de ativos para acompanhar
-const CRYPTO_ASSETS = [
-  { symbol: 'BTCUSDT', name: 'Bitcoin', iconUrl: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
-  { symbol: 'ETHUSDT', name: 'Ethereum', iconUrl: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
-  { symbol: 'SOLUSDT', name: 'Solana', iconUrl: 'https://cryptologos.cc/logos/solana-sol-logo.png' },
-  { symbol: 'XRPUSDT', name: 'XRP', iconUrl: 'https://cryptologos.cc/logos/xrp-xrp-logo.png' },
-  { symbol: 'DOGEUSDT', name: 'Dogecoin', iconUrl: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png' },
-  { symbol: 'ADAUSDT', name: 'Cardano', iconUrl: 'https://cryptologos.cc/logos/cardano-ada-logo.png' },
-  { symbol: 'AVAXUSDT', name: 'Avalanche', iconUrl: 'https://cryptologos.cc/logos/avalanche-avax-logo.png' },
-  { symbol: 'LINKUSDT', name: 'Chainlink', iconUrl: 'https://cryptologos.cc/logos/chainlink-link-logo.png' },
-  { symbol: 'DOTUSDT', name: 'Polkadot', iconUrl: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png' },
-  { symbol: 'POLUSDT', name: 'Polygon', iconUrl: 'https://cryptologos.cc/logos/polygon-matic-logo.png' },
-  { symbol: 'LTCUSDT', name: 'Litecoin', iconUrl: 'https://cryptologos.cc/logos/litecoin-ltc-logo.png' },
-  { symbol: 'UNIUSDT', name: 'Uniswap', iconUrl: 'https://cryptologos.cc/logos/uniswap-uni-logo.png' },
-];
+import { Star, LayoutGrid, List, Loader2 } from 'lucide-react';
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
+  const { assets: cryptoAssets, isLoading: isLoadingAssets } = useBybitInstruments();
   
   // Estado para favoritos
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -74,13 +60,9 @@ export default function App() {
     setSelectedSymbols([]);
   };
 
-  // Extrai apenas os símbolos para o hook do WebSocket
-  const symbols = useMemo(() => CRYPTO_ASSETS.map(asset => asset.symbol), []);
-  const { tickers, isConnected } = useBybitWebSocket(symbols);
-
   // Filtra os ativos com base na busca e modo
   const filteredAssets = useMemo(() => {
-    return CRYPTO_ASSETS.filter(asset => {
+    let result = cryptoAssets.filter(asset => {
       // Se houver moedas selecionadas no dropdown, mostramos apenas elas (ignorando a busca em texto para os cards)
       // Se não houver seleção, usamos a busca em texto para filtrar os cards
       const matchesSearchOrSelection = selectedSymbols.length > 0 
@@ -92,15 +74,43 @@ export default function App() {
       
       return matchesSearchOrSelection && matchesMode;
     });
-  }, [searchQuery, filterMode, favorites, selectedSymbols]);
+
+    // Limita a quantidade de moedas renderizadas para economizar recursos (DOM e WebSocket)
+    // Se não houver busca ou seleção específica, mostra apenas as top 40
+    if (selectedSymbols.length === 0 && !searchQuery && filterMode === 'all') {
+      result = result.slice(0, 40);
+    }
+
+    return result;
+  }, [cryptoAssets, searchQuery, filterMode, favorites, selectedSymbols]);
 
   // Ativos para o marquee (apenas favoritos se o filtro estiver ativo)
   const marqueeAssets = useMemo(() => {
     if (filterMode === 'favorites') {
-      return CRYPTO_ASSETS.filter(asset => favorites.includes(asset.symbol));
+      return cryptoAssets.filter(asset => favorites.includes(asset.symbol));
     }
-    return CRYPTO_ASSETS;
-  }, [filterMode, favorites]);
+    // Para não sobrecarregar o marquee, limitamos a 20 ativos principais se não houver filtro
+    return cryptoAssets.slice(0, 20);
+  }, [filterMode, favorites, cryptoAssets]);
+
+  // Extrai apenas os símbolos necessários para o WebSocket (cards visíveis + marquee)
+  const symbols = useMemo(() => {
+    const neededSymbols = new Set<string>();
+    filteredAssets.forEach(asset => neededSymbols.add(asset.symbol));
+    marqueeAssets.forEach(asset => neededSymbols.add(asset.symbol));
+    return Array.from(neededSymbols);
+  }, [filteredAssets, marqueeAssets]);
+
+  // Debounce dos símbolos para evitar reconexões excessivas do WebSocket durante a digitação
+  const [debouncedSymbols, setDebouncedSymbols] = useState<string[]>([]);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSymbols(symbols);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [symbols]);
+
+  const { tickers, isConnected } = useBybitWebSocket(debouncedSymbols);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 font-sans transition-colors duration-300">
@@ -131,7 +141,7 @@ export default function App() {
           className="flex flex-col sm:flex-row gap-4 mb-8 items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800"
         >
           <SearchDropdown 
-            assets={CRYPTO_ASSETS}
+            assets={cryptoAssets}
             selectedSymbols={selectedSymbols}
             onToggleSelect={toggleSelect}
             favorites={favorites}
@@ -214,7 +224,12 @@ export default function App() {
         </motion.div>
 
         {/* Grid de Cards */}
-        {filteredAssets.length > 0 ? (
+        {isLoadingAssets ? (
+          <div className="flex flex-col items-center justify-center py-20 text-zinc-500 dark:text-zinc-400">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
+            <p className="text-lg">Carregando todos os mercados futuros...</p>
+          </div>
+        ) : filteredAssets.length > 0 ? (
           <div className={`grid gap-4 sm:gap-6 ${
             viewMode === 'list' 
               ? 'grid-cols-1' 

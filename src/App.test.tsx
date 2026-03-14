@@ -23,6 +23,15 @@ vi.mock('./hooks/useBybitWebSocket', () => ({
   }),
 }));
 
+vi.mock('./hooks/useBybitInstruments', () => ({
+  useBybitInstruments: () => ({
+    assets: [
+      { symbol: 'BTCUSDT', name: 'Bitcoin', iconUrl: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' }
+    ],
+    isLoading: false,
+  }),
+}));
+
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

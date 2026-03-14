@@ -69,11 +69,17 @@ export function useBybitWebSocket(symbols: string[]) {
         
         if (wsType === 'bybit') {
           const args = symbols.map(symbol => `tickers.${symbol}`);
-          const subscribeMsg = {
-            op: 'subscribe',
-            args: args
-          };
-          ws.send(JSON.stringify(subscribeMsg));
+          
+          // A Bybit permite no máximo 10 args por requisição de subscribe
+          const chunkSize = 10;
+          for (let i = 0; i < args.length; i += chunkSize) {
+            const chunk = args.slice(i, i + chunkSize);
+            const subscribeMsg = {
+              op: 'subscribe',
+              args: chunk
+            };
+            ws.send(JSON.stringify(subscribeMsg));
+          }
 
           // Mantém a conexão viva enviando ping a cada 20 segundos (Bybit)
           pingInterval = setInterval(() => {
@@ -186,7 +192,11 @@ export function useBybitWebSocket(symbols: string[]) {
           const currentWsConfig = WS_URLS[urlIndexRef.current];
           if (currentWsConfig.type === 'bybit') {
             const args = symbols.map(symbol => `tickers.${symbol}`);
-            wsRef.current.send(JSON.stringify({ op: 'unsubscribe', args }));
+            const chunkSize = 10;
+            for (let i = 0; i < args.length; i += chunkSize) {
+              const chunk = args.slice(i, i + chunkSize);
+              wsRef.current.send(JSON.stringify({ op: 'unsubscribe', args: chunk }));
+            }
           } else if (currentWsConfig.type === 'binance') {
             const args = symbols.map(symbol => `${symbol.toLowerCase()}@ticker`);
             wsRef.current.send(JSON.stringify({ method: 'UNSUBSCRIBE', params: args, id: 1 }));
